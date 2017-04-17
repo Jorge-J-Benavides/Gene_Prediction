@@ -6,6 +6,7 @@ import argparse
 from os import path
 import itertools
 
+
 tags = None
 tag_counts = None
 ################################################################################################################################
@@ -48,10 +49,46 @@ def get_dna_into_correct_format(dna_seq_filepath, dna_state_filepath):
             fl.write(nucleotide + '\t' + state + '\n')
 
     # return the name of the file created with the seq and state in the correct format
-    return seq_state 
+    return seq_state, dna_state_array 
 
 ################################################################################################################################
-#
+
+# each of these takes two lists of "G" and "N"
+# the first is always the correct list
+# the second is the output of viterbi
+# note that they should be the same length!
+
+def accuracy(correct,guesses):
+    # accuracy = number of correct / number of total
+    num_correct = 0
+    for i in range(len(correct)):
+        if guesses[i]==correct[i]: num_correct = num_correct+1
+    return num_correct*1.0 / len(correct)
+
+def sensitivity(correct,guesses):
+    # sensitivity = number of true positives caught by guesses
+    num_correct = 0
+    for i in range(len(correct)):
+        if correct[i]=="G" and guesses[i]=="G": num_correct = num_correct+1
+    return num_correct * 1.0 / len([c for c in correct if c=="G"])
+
+def specificity(correct,guesses):
+    # exact same thing as above except with "N"
+    num_correct = 0
+    for i in range(len(correct)):
+        if correct[i]=="N" and guesses[i]=="N": num_correct = num_correct+1
+    return num_correct * 1.0 / len([c for c in correct if c=="N"])
+
+'''
+def precision(correct,guesses):
+    # precision = number of true positives / number of total positives
+    true_positives = 0
+    for i in range(len(correct)):
+        if correct[i]=="G" and guesses[i]=="G": true_positives = true_positives+1
+    return true_positives *1.0 / len([g for g in guesses if g=="G"])
+'''
+
+
 ################################################################################################################################
 # the actual algorithm
 def viterbi(s,trans,emits,counts):
@@ -91,7 +128,7 @@ def viterbi(s,trans,emits,counts):
 ################################################################################################################################
 def main():
     #call function to get seq and states into one file in the correct format
-    seq_state_filename = get_dna_into_correct_format(dna_seq_filepath ,dna_state_filepath)
+    seq_state_filename, correct_state_array = get_dna_into_correct_format(dna_seq_filepath ,dna_state_filepath)
 
     #read in all lines
     with open(seq_state_filename,'r') as fl:
@@ -143,8 +180,26 @@ def main():
     
     # now run the nucleotide sequence as specified in the description
     # note that my implimentation required the use of the tag counts
-    print(viterbi(['N','G','N','G','G','G','G','G','G','N'], transcounts, emitcounts,tag_counts))
     
+    #using loop to generate a guess of states to plug into vitrbi that will be the correct length
+    guesses_states_array = []
+    for i in range(len(correct_state_array)):
+        n = 'N'
+        guesses_states_array.append(','.join(n))
+    
+
+    viterbi_returned_states = (viterbi(guesses_states_array, transcounts, emitcounts,tag_counts))
+    
+    print ("Guessed States Plugged into Viterbi" , "".join(guesses_states_array))
+    print ("Viterbi Output States              " , "".join(viterbi_returned_states))
+    print ("Correct States                     " , correct_state_array)
+    print ("Accuracy: ", accuracy(correct_state_array, viterbi_returned_states))
+    print ("Sensitivity: ", sensitivity(correct_state_array, viterbi_returned_states))
+    print ("Specificity: ", specificity(correct_state_array, viterbi_returned_states))
+    '''
+    print (precision(correct_state_array, viterbi_returned_states))
+    '''
+        
 ################################################################################################################################
 # Have to use this line of code because our program needs to run with command line arguments
 ################################################################################################################################
