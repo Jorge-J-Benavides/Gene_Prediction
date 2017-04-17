@@ -1,0 +1,10 @@
+G	N
+T	G
+G	N
+C	N
+G	N
+T	N
+C	G
+G	N
+C	G
+T	G
